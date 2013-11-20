@@ -50,6 +50,8 @@
 #include <vtkSmartPointer.h>
 #include <vtkSeedRepresentation.h>
 #include <vtkSphereSource.h>
+#include <vtkSphereWidget2.h>
+#include <vtkSphereRepresentation.h>
 
 // STD includes
 #include <sstream>
@@ -512,60 +514,29 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::PropagateMRMLToWidget(vtkMRMLMa
     return;
     }
 
-  // cast to the specific widget
-  vtkSeedWidget* seedWidget = vtkSeedWidget::SafeDownCast(widget);
-
-  if (!seedWidget)
-    {
-    vtkErrorMacro("PropagateMRMLToWidget: Could not get seed widget!")
-    return;
-    }
-
   // cast to the specific mrml node
   vtkMRMLMarkupsFiducialNode* fiducialNode = vtkMRMLMarkupsFiducialNode::SafeDownCast(node);
-
   if (!fiducialNode)
     {
     vtkErrorMacro("PropagateMRMLToWidget: Could not get fiducial node!")
     return;
     }
 
-  // disable processing of modified events
-  this->Updating = 1;
-
-
-  // now get the widget properties (coordinates, measurement etc.) and if the mrml node has changed, propagate the changes
-  vtkMRMLMarkupsDisplayNode *displayNode = fiducialNode->GetMarkupsDisplayNode();
-
-  if (!displayNode)
+  // cast to the specific widget
+  vtkSeedWidget* seedWidget = vtkSeedWidget::SafeDownCast(widget);
+  if (seedWidget)
+    this->PropagateMRMLToSeedWidget(fiducialNode, seedWidget);
+  else
     {
-    vtkDebugMacro("PropagateMRMLToWidget: Could not get display node for node " << (fiducialNode->GetID() ? fiducialNode->GetID() : "null id"));
+    vtkSphereWidget2* sphereWidget = vtkSphereWidget2::SafeDownCast(widget);
+    if (sphereWidget)
+      this->PropagateMRMLToSphereWidget(fiducialNode, sphereWidget);
+    else
+      {
+      vtkErrorMacro("PropagateWidgetToMRML: Could not get seed or sphere widget!");
+      return;
+      }
     }
-
-  // iterate over the fiducials in this markup
-  int numberOfFiducials = fiducialNode->GetNumberOfMarkups();
-
-  vtkDebugMacro("Fids PropagateMRMLToWidget, node num markups = " << numberOfFiducials);
-
-  for (int n = 0; n < numberOfFiducials; n++)
-    {
-    // std::cout << "Fids PropagateMRMLToWidget: n = " << n << std::endl;
-    this->SetNthSeed(n, fiducialNode, seedWidget);
-    }
-
-  // update lock status
-  this->Helper->UpdateLocked(node, this->GetInteractionNode());
-
-  // update visibility of widget as a whole
-  // std::cout << "PropagateMRMLToWidget: calling UpdateWidgetVisibility" << std::endl;
-  this->UpdateWidgetVisibility(node);
-
-  vtkSeedRepresentation * seedRepresentation = vtkSeedRepresentation::SafeDownCast(seedWidget->GetRepresentation());
-  seedRepresentation->NeedToRenderOn();
-  seedWidget->Modified();
-
-  // enable processing of modified events
-  this->Updating = 0;
 }
 
 //---------------------------------------------------------------------------
@@ -585,21 +556,6 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::PropagateWidgetToMRML(vtkAbstra
     return;
     }
 
-  // cast to the specific widget
-  vtkSeedWidget* seedWidget = vtkSeedWidget::SafeDownCast(widget);
-
-  if (!seedWidget)
-   {
-   vtkErrorMacro("PropagateWidgetToMRML: Could not get seed widget!")
-   return;
-   }
-
-  if (seedWidget->GetWidgetState() != vtkSeedWidget::MovingSeed)
-    {
-    // ignore events not caused by seed movement
-    return;
-    }
-
   // cast to the specific mrml node
   vtkMRMLMarkupsFiducialNode* fiducialNode = vtkMRMLMarkupsFiducialNode::SafeDownCast(node);
 
@@ -609,60 +565,22 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::PropagateWidgetToMRML(vtkAbstra
    return;
    }
 
-  // disable processing of modified events
-  this->Updating = 1;
-
-  // now get the widget properties (coordinates, measurement etc.) and if the mrml node has changed, propagate the changes
-  vtkSeedRepresentation * seedRepresentation = vtkSeedRepresentation::SafeDownCast(seedWidget->GetRepresentation());
-  int numberOfSeeds = seedRepresentation->GetNumberOfSeeds();
-
-  bool positionChanged = false;
-  for (int n = 0; n < numberOfSeeds; n++)
+  // cast to the specific widget and call corresponding propagate
+  // function
+  vtkSeedWidget* seedWidget = vtkSeedWidget::SafeDownCast(widget);
+  if (seedWidget)
+    this->propagateSeedWidgetToMRML(seedWidget, fiducialNode);
+  else
     {
-    double worldCoordinates1[4];
-    seedRepresentation->GetSeedWorldPosition(n,worldCoordinates1);
-    vtkDebugMacro("PropagateWidgetToMRML: 3d: widget seed " << n
-          << " world coords = " << worldCoordinates1[0] << ", "
-          << worldCoordinates1[1] << ", "<< worldCoordinates1[2]);
-
-    // was there a change?
-    double currentCoordinates[4];
-    fiducialNode->GetNthFiducialWorldCoordinates(n,currentCoordinates);
-    vtkDebugMacro("PropagateWidgetToMRML: fiducial " << n
-          << " current world coordinates = " << currentCoordinates[0]
-          << ", " << currentCoordinates[1] << ", "
-          << currentCoordinates[2]);
-
-    double currentCoords[3];
-    currentCoords[0] = currentCoordinates[0];
-    currentCoords[1] = currentCoordinates[1];
-    currentCoords[2] = currentCoordinates[2];
-    double newCoords[3];
-    newCoords[0] = worldCoordinates1[0];
-    newCoords[1] = worldCoordinates1[1];
-    newCoords[2] = worldCoordinates1[2];
-    if (this->GetWorldCoordinatesChanged(currentCoords, newCoords))
+    vtkSphereWidget2* sphereWidget = vtkSphereWidget2::SafeDownCast(widget);
+    if (sphereWidget)
+      this->propagateSphereWidgetToMRML(sphereWidget, fiducialNode);
+    else
       {
-      vtkDebugMacro("PropagateWidgetToMRML: position changed.");
-      positionChanged = true;
-      }
-
-    if (positionChanged)
-      {
-      vtkDebugMacro("PropagateWidgetToMRML: position changed, setting fiducial coordinates");
-      fiducialNode->SetNthFiducialWorldCoordinates(n,worldCoordinates1);
+      vtkErrorMacro("PropagateWidgetToMRML: Could not get seed or sphere widget!");
+      return;
       }
     }
-
-  // did any of the positions change?
-  if (positionChanged)
-    {
-    vtkDebugMacro("PropagateWidgetToMRML: position changed, calling point modified on the fiducial node");
-    fiducialNode->Modified();
-    fiducialNode->GetScene()->InvokeEvent(vtkMRMLMarkupsNode::PointModifiedEvent,fiducialNode);
-    }
-  // This displayableManager should now consider ModifiedEvent again
-  this->Updating = 0;
 }
 
 //---------------------------------------------------------------------------
@@ -973,4 +891,261 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::OnMRMLMarkupsNodeMarkupRemovedE
   // for now, recreate the widget
   this->Helper->RemoveWidgetAndNode(markupsNode);
   this->AddWidget(markupsNode);
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsFiducialDisplayableManager3D::
+ChangeToOrientationWidget(vtkMRMLMarkupsFiducialNode* node)
+{
+  vtkSphereWidget2* sphereWidget = vtkSphereWidget2::New();
+  sphereWidget->CreateDefaultRepresentation();
+  sphereWidget->SetInteractor(this->GetInteractor());
+  sphereWidget->SetCurrentRenderer(this->GetRenderer());
+
+  this->Helper->UpdateWidgetForNode(sphereWidget, node);
+
+  // add the callback
+  vtkMarkupsFiducialWidgetCallback3D *myCallback = vtkMarkupsFiducialWidgetCallback3D::New();
+  myCallback->SetNode(node);
+  myCallback->SetWidget(widget);
+  myCallback->SetDisplayableManager(this);
+  widget->AddObserver(vtkCommand::EndInteractionEvent,myCallback);
+  widget->AddObserver(vtkCommand::InteractionEvent,myCallback);
+  myCallback->Delete();
+
+  this->PropagateMRMLToWidget(node, sphereWidget);
+}
+
+//---------------------------------------------------------------------------
+namespace
+{
+  void GenerateRandomFrameFromZ(const double z[3], double x[3], double y[3])
+  {
+    double e1[] = {1.0, 0.0, 0.0};
+    double e2[] = {0.0, 1.0, 0.0};
+
+    double* startVec;
+    if (fabs(vtkMath::Dot(z, e1) - 1.0) < 0.0000001)
+      startVec = e2;
+    else
+      startVec = e1;
+
+    double u[3];
+    vtkMath::Cross(z, startVec, u);
+
+    double v[3];
+    vtkMath::Cross(z, u, v);
+
+    // Populate x and y so that x,y,z are a right-handed frame
+    vtkMath::Cross(u, v, startVec);
+    if (vtkMath::Dot(z, startVec) < 0.0)
+      {
+      for (int i = 0; i < 3; ++i)
+        {
+        x[i] = v[i];
+        y[i] = u[i];
+        }
+      }
+    else
+      {
+      for (int i = 0; i < 3; ++i)
+        {
+        x[i] = u[i];
+        y[i] = v[i];
+        }
+      }
+  }
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsFiducialDisplayableManager3D::
+PropagateSphereWidgetToMRML(vtkSphereWidget2* widget, vtkMRMLMarkupsFiducialNode* node)
+{
+  if (node->GetNumberOfFiducials() < 1)
+    {
+    vtkDebugMacro("PropagateSphereWidgetToMRML: node had no markups");
+    return;
+    }
+
+  vtkSphereRepresentation* sphereRep = vtkSphereRepresentation::SafeDownCast(widget->GetRepresentation());
+  if (!sphereRep)
+    {
+    vtkDebugMacro("PropagateWidgetToMRML: widget's representation was not a sphere rep!");
+    return;
+    }
+
+  this->Updating = 1;
+
+  double direction[3];
+  sphereRep->GetHandleDirection(direction);
+
+  vtkDebugMacro("PropagateWidgetToMRML: " << direction[0] << " " << direction[1] << " " << direction[2]);
+
+  double x[3], y[3];
+  GenerateRandomFrameFromZ(direction, x, y);
+
+  double R[3][3];
+  for (int i = 0; i < 3; ++i)
+    {
+    R[i][0] = x[i];
+    R[i][1] = y[i];
+    R[i][2] = z[i];
+    }
+  double q[4];
+  vtkMath::Matrix3x3ToQuaternion(R, q);
+
+  int markupIdx = 0;
+  node->SetNthMarkupOrientationFromArray(markupIdx, q);
+
+  node->Modified();
+
+  node->InvokeEvent(vtkMRMLMarkupsNode::PointModifiedEvent,(void*)&markupIdx);
+
+  this->Updating = 0;
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsFiducialDisplayableManager3D::
+PropagateSeedWidgetToMRML(vtkSeedWidget* seedWidget, vtkMRMLMarkupsFiducialNode* fiducialNode)
+{
+  if (seedWidget->GetWidgetState() != vtkSeedWidget::MovingSeed)
+    {
+    // ignore events not caused by seed movement
+    return;
+    }
+
+  // disable processing of modified events
+  this->Updating = 1;
+
+  // now get the widget properties (coordinates, measurement etc.) and if the mrml node has changed, propagate the changes
+  vtkSeedRepresentation * seedRepresentation = vtkSeedRepresentation::SafeDownCast(seedWidget->GetRepresentation());
+  int numberOfSeeds = seedRepresentation->GetNumberOfSeeds();
+
+  bool positionChanged = false;
+  for (int n = 0; n < numberOfSeeds; n++)
+    {
+    double worldCoordinates1[4];
+    seedRepresentation->GetSeedWorldPosition(n,worldCoordinates1);
+    vtkDebugMacro("PropagateWidgetToMRML: 3d: widget seed " << n
+          << " world coords = " << worldCoordinates1[0] << ", "
+          << worldCoordinates1[1] << ", "<< worldCoordinates1[2]);
+
+    // was there a change?
+    double currentCoordinates[4];
+    fiducialNode->GetNthFiducialWorldCoordinates(n,currentCoordinates);
+    vtkDebugMacro("PropagateWidgetToMRML: fiducial " << n
+          << " current world coordinates = " << currentCoordinates[0]
+          << ", " << currentCoordinates[1] << ", "
+          << currentCoordinates[2]);
+
+    double currentCoords[3];
+    currentCoords[0] = currentCoordinates[0];
+    currentCoords[1] = currentCoordinates[1];
+    currentCoords[2] = currentCoordinates[2];
+    double newCoords[3];
+    newCoords[0] = worldCoordinates1[0];
+    newCoords[1] = worldCoordinates1[1];
+    newCoords[2] = worldCoordinates1[2];
+    if (this->GetWorldCoordinatesChanged(currentCoords, newCoords))
+      {
+      vtkDebugMacro("PropagateWidgetToMRML: position changed.");
+      positionChanged = true;
+      }
+
+    if (positionChanged)
+      {
+      vtkDebugMacro("PropagateWidgetToMRML: position changed, setting fiducial coordinates");
+      fiducialNode->SetNthFiducialWorldCoordinates(n,worldCoordinates1);
+      }
+    }
+
+  // did any of the positions change?
+  if (positionChanged)
+    {
+    vtkDebugMacro("PropagateWidgetToMRML: position changed, calling point modified on the fiducial node");
+    fiducialNode->Modified();
+    fiducialNode->GetScene()->InvokeEvent(vtkMRMLMarkupsNode::PointModifiedEvent,fiducialNode);
+    }
+  // This displayableManager should now consider ModifiedEvent again
+  this->Updating = 0;
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsFiducialDisplayableManager3D::
+PropagateMRMLToSphereWidget(vtkMRMLMarkupsFiducialNode* node, vtkSphereWidget2* widget)
+{
+  if (node->GetNumberOfFiducials() < 1)
+    {
+    vtkErrorMacro("PropagateMRMLToSphereWidget: node has no fiducials!");
+    return;
+    }
+
+  vtkSphereRepresentation* sphereRep = vtkSphereRepresentation::SafeDownCast(widget->GetRepresentation());
+  if (!sphereRep)
+    {
+    vtkErrorMacro("PropgateMRMLToSphereWidget: widget representation was not a sphere representation!");
+    return;
+    }
+
+  this->Updating = 1;
+
+  int markupIdx = 0;
+
+  // Set center of widget
+  double p[3];
+  node->GetNthFiducialPosition(markupIdx, p);
+  sphereRep->SetCenter(p);
+
+  // Set direction of widget
+  double q[4];
+  node->GetNthMarkupOrientation(markupIdx, q);
+  double R[3][3];
+  vtkMath::QuaternionToMatrix3x3(q, R);
+  sphereRep->SetHandleDirection(R[0][2], R[1][2], R[2][2]);
+
+  sphereRep->NeedToRenderOn();
+  sphereRep->Modified();
+
+  this->Updating = 0;
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsFiducialDisplayableManager3D::
+PropagateMRMLToSeedWidget(vtkMRMLMarkupsFiducialNode* fiducialNode, vtkSeedWidget* seedWidget)
+{
+  // disable processing of modified events
+  this->Updating = 1;
+
+  // now get the widget properties (coordinates, measurement etc.) and if the mrml node has changed, propagate the changes
+  vtkMRMLMarkupsDisplayNode *displayNode = fiducialNode->GetMarkupsDisplayNode();
+
+  if (!displayNode)
+    {
+    vtkDebugMacro("PropagateMRMLToWidget: Could not get display node for node " << (fiducialNode->GetID() ? fiducialNode->GetID() : "null id"));
+    }
+
+  // iterate over the fiducials in this markup
+  int numberOfFiducials = fiducialNode->GetNumberOfMarkups();
+
+  vtkDebugMacro("Fids PropagateMRMLToWidget, node num markups = " << numberOfFiducials);
+
+  for (int n = 0; n < numberOfFiducials; n++)
+    {
+    // std::cout << "Fids PropagateMRMLToWidget: n = " << n << std::endl;
+    this->SetNthSeed(n, fiducialNode, seedWidget);
+    }
+
+  // update lock status
+  this->Helper->UpdateLocked(node, this->GetInteractionNode());
+
+  // update visibility of widget as a whole
+  // std::cout << "PropagateMRMLToWidget: calling UpdateWidgetVisibility" << std::endl;
+  this->UpdateWidgetVisibility(node);
+
+  vtkSeedRepresentation * seedRepresentation = vtkSeedRepresentation::SafeDownCast(seedWidget->GetRepresentation());
+  seedRepresentation->NeedToRenderOn();
+  seedWidget->Modified();
+
+  // enable processing of modified events
+  this->Updating = 0;
 }

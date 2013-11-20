@@ -68,6 +68,9 @@ public:
   /// Keep track of the mapping between widgets and nodes
   void RecordWidgetForNode(vtkAbstractWidget* widget, vtkMRMLMarkupsNode *node);
 
+  /// Update the widget for the given node
+  void UpdateWidgetForNode(vtkAbstractWidget* widget, vtkMRMLMarkupsNode *node);
+
   /// Get a vtkAbstractWidget* given a node
   vtkAbstractWidget * GetWidget(vtkMRMLMarkupsNode * node);
   /// ...and its associated vtkAbstractWidget* for Slice intersection representation

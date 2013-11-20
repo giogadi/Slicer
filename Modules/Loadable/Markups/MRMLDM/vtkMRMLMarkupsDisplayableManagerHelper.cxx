@@ -598,6 +598,38 @@ void vtkMRMLMarkupsDisplayableManagerHelper::RecordWidgetForNode(vtkAbstractWidg
 }
 
 //---------------------------------------------------------------------------
+void vtkMRMLMarkupsDisplayableManagerHelper::UpdateWidgetForNode(vtkAbstractWidget* widget,
+                                                                 vtkMRMLMarkupsNode* node)
+{
+  if (!node)
+    {
+    vtkErrorMacro("UpdateWidgetForNode: no node!");
+    return;
+    }
+  if (!widget)
+    {
+    vtkErrorMacro("UpdateWidgetForNode: no widget!");
+    return;
+    }
+
+  // Make sure the map contains a vtkWidget associated with this node
+  WidgetsIt widgetIterator = this->Widgets.find(node);
+  if (widgetIterator != this->Widgets.end())
+    {
+    // Delete the current vtkWidget
+    vtkAbstractWidget* oldWidget = widgetIterator->second;
+    if (oldWidget)
+      {
+      oldWidget->Off();
+      oldWidget->Delete();
+      }
+
+    // save the new widget to the map indexed by the node
+    widgetIterator->second = widget;
+    }
+}
+
+//---------------------------------------------------------------------------
 int vtkMRMLMarkupsDisplayableManagerHelper::GetNodeGlyphType(vtkMRMLNode *displayNode, int index)
 {
   std::map<vtkMRMLNode*, std::vector<int> >::iterator iter  = this->NodeGlyphTypes.find(displayNode);

@@ -79,6 +79,15 @@ protected:
   // Clean up when scene closes
   virtual void OnMRMLSceneEndClose();
 
+  // Change node widget to a sphere widget for orientation interaction
+  void ChangeToOrientationWidget(vtkMRMLMarkupsFiducialNode* node);
+
+  void PropagateSphereWidgetToMRML(vtkSphereWidget2* widget, vtkMRMLMarkupsFiducialNode* node);
+  void PropagateSeedWidgetToMRML(vtkSphereWidget2* widget, vtkMRMLMarkupsFiducialNode* node);
+
+  void PropagateMRMLToSphereWidget(vtkMRMLMarkupsFiducialNode* node, vtkSphereWidget2* widget);
+  void PropagateMRMLToSeedWidget(vtkMRMLMarkupsFiducialNode* node, vtkSeedWidget2* widget);
+
 private:
 
   vtkMRMLMarkupsFiducialDisplayableManager3D(const vtkMRMLMarkupsFiducialDisplayableManager3D&); /// Not implemented
