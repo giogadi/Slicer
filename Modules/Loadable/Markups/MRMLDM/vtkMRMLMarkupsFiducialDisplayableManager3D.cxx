@@ -569,12 +569,12 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::PropagateWidgetToMRML(vtkAbstra
   // function
   vtkSeedWidget* seedWidget = vtkSeedWidget::SafeDownCast(widget);
   if (seedWidget)
-    this->propagateSeedWidgetToMRML(seedWidget, fiducialNode);
+    this->PropagateSeedWidgetToMRML(seedWidget, fiducialNode);
   else
     {
     vtkSphereWidget2* sphereWidget = vtkSphereWidget2::SafeDownCast(widget);
     if (sphereWidget)
-      this->propagateSphereWidgetToMRML(sphereWidget, fiducialNode);
+      this->PropagateSphereWidgetToMRML(sphereWidget, fiducialNode);
     else
       {
       vtkErrorMacro("PropagateWidgetToMRML: Could not get seed or sphere widget!");
@@ -907,10 +907,10 @@ ChangeToOrientationWidget(vtkMRMLMarkupsFiducialNode* node)
   // add the callback
   vtkMarkupsFiducialWidgetCallback3D *myCallback = vtkMarkupsFiducialWidgetCallback3D::New();
   myCallback->SetNode(node);
-  myCallback->SetWidget(widget);
+  myCallback->SetWidget(sphereWidget);
   myCallback->SetDisplayableManager(this);
-  widget->AddObserver(vtkCommand::EndInteractionEvent,myCallback);
-  widget->AddObserver(vtkCommand::InteractionEvent,myCallback);
+  sphereWidget->AddObserver(vtkCommand::EndInteractionEvent,myCallback);
+  sphereWidget->AddObserver(vtkCommand::InteractionEvent,myCallback);
   myCallback->Delete();
 
   this->PropagateMRMLToWidget(node, sphereWidget);
@@ -989,7 +989,7 @@ PropagateSphereWidgetToMRML(vtkSphereWidget2* widget, vtkMRMLMarkupsFiducialNode
     {
     R[i][0] = x[i];
     R[i][1] = y[i];
-    R[i][2] = z[i];
+    R[i][2] = direction[i];
     }
   double q[4];
   vtkMath::Matrix3x3ToQuaternion(R, q);
@@ -1136,11 +1136,11 @@ PropagateMRMLToSeedWidget(vtkMRMLMarkupsFiducialNode* fiducialNode, vtkSeedWidge
     }
 
   // update lock status
-  this->Helper->UpdateLocked(node, this->GetInteractionNode());
+  this->Helper->UpdateLocked(fiducialNode, this->GetInteractionNode());
 
   // update visibility of widget as a whole
   // std::cout << "PropagateMRMLToWidget: calling UpdateWidgetVisibility" << std::endl;
-  this->UpdateWidgetVisibility(node);
+  this->UpdateWidgetVisibility(fiducialNode);
 
   vtkSeedRepresentation * seedRepresentation = vtkSeedRepresentation::SafeDownCast(seedWidget->GetRepresentation());
   seedRepresentation->NeedToRenderOn();

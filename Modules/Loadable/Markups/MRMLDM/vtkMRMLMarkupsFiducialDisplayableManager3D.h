@@ -28,6 +28,7 @@ class vtkMRMLMarkupsFiducialNode;
 class vtkSlicerViewerWidget;
 class vtkMRMLMarkupsDisplayNode;
 class vtkTextWidget;
+class vtkSphereWidget2;
 
 /// \ingroup Slicer_QtModules_Markups
 class VTK_SLICER_MARKUPS_MODULE_MRMLDISPLAYABLEMANAGER_EXPORT vtkMRMLMarkupsFiducialDisplayableManager3D :
@@ -83,10 +84,10 @@ protected:
   void ChangeToOrientationWidget(vtkMRMLMarkupsFiducialNode* node);
 
   void PropagateSphereWidgetToMRML(vtkSphereWidget2* widget, vtkMRMLMarkupsFiducialNode* node);
-  void PropagateSeedWidgetToMRML(vtkSphereWidget2* widget, vtkMRMLMarkupsFiducialNode* node);
+  void PropagateSeedWidgetToMRML(vtkSeedWidget* widget, vtkMRMLMarkupsFiducialNode* node);
 
   void PropagateMRMLToSphereWidget(vtkMRMLMarkupsFiducialNode* node, vtkSphereWidget2* widget);
-  void PropagateMRMLToSeedWidget(vtkMRMLMarkupsFiducialNode* node, vtkSeedWidget2* widget);
+  void PropagateMRMLToSeedWidget(vtkMRMLMarkupsFiducialNode* node, vtkSeedWidget* widget);
 
 private:
 
