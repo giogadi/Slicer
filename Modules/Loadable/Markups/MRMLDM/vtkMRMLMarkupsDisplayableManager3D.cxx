@@ -37,6 +37,9 @@
 #include <vtkMRMLTransformNode.h>
 #include <vtkMRMLViewNode.h>
 
+// TERRIBLE
+#include <vtkMRMLMarkupsFiducialNode.h>
+
 // VTK includes
 #include <vtkAbstractWidget.h>
 #include <vtkCallbackCommand.h>
@@ -127,6 +130,7 @@ void vtkMRMLMarkupsDisplayableManager3D::SetAndObserveNode(vtkMRMLMarkupsNode *m
   nodeEvents->InsertNextValue(vtkMRMLMarkupsNode::MarkupRemovedEvent);
   nodeEvents->InsertNextValue(vtkMRMLMarkupsNode::LockModifiedEvent);
   nodeEvents->InsertNextValue(vtkMRMLTransformableNode::TransformModifiedEvent);
+  nodeEvents->InsertNextValue(vtkMRMLMarkupsFiducialNode::ChangeOrientationEvent);
 
  if (markupsNode)// && !markupsNode->HasObserver(vtkMRMLTransformableNode::TransformModifiedEvent))
    {

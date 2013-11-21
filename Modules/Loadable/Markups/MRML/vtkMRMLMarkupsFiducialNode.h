@@ -43,6 +43,12 @@ public:
 
   virtual const char* GetIcon() {return ":/Icons/MarkupsMouseModePlace.png";};
 
+  /// Events
+  enum
+  {
+    ChangeOrientationEvent = 666666,
+  };
+
   //--------------------------------------------------------------------------
   // MRMLNode methods
   //--------------------------------------------------------------------------
@@ -115,6 +121,9 @@ public:
   void SetNthFiducialWorldCoordinates(int n, double coords[4]);
   /// Get world coordinates on nth fiducial
   void GetNthFiducialWorldCoordinates(int n, double coords[4]);
+
+  /// Call event for DM to switch to change-orientation mode
+  void ChangeToOrientationMode();
 
 protected:
   vtkMRMLMarkupsFiducialNode();

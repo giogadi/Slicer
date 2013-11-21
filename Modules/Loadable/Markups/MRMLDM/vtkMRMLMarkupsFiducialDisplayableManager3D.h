@@ -89,6 +89,8 @@ protected:
   void PropagateMRMLToSphereWidget(vtkMRMLMarkupsFiducialNode* node, vtkSphereWidget2* widget);
   void PropagateMRMLToSeedWidget(vtkMRMLMarkupsFiducialNode* node, vtkSeedWidget* widget);
 
+  virtual void ProcessMRMLNodesEvents(vtkObject *caller, unsigned long event, void *callData);
+
 private:
 
   vtkMRMLMarkupsFiducialDisplayableManager3D(const vtkMRMLMarkupsFiducialDisplayableManager3D&); /// Not implemented

@@ -245,3 +245,9 @@ void vtkMRMLMarkupsFiducialNode::GetNthFiducialWorldCoordinates(int n, double co
 {
   this->GetMarkupPointWorld(n, 0, coords);
 }
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsFiducialNode::ChangeToOrientationMode()
+{
+  this->InvokeEvent(vtkMRMLMarkupsFiducialNode::ChangeOrientationEvent);
+}

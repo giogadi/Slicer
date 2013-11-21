@@ -179,7 +179,7 @@ vtkAbstractWidget * vtkMRMLMarkupsFiducialDisplayableManager3D::CreateWidget(vtk
 
   //seed widget
   vtkSeedWidget * seedWidget = vtkSeedWidget::New();
-  seedWidget->CreateDefaultRepresentation();
+  //seedWidget->CreateDefaultRepresentation(); not necessary
 
   seedWidget->SetRepresentation(rep.GetPointer());
 
@@ -901,6 +901,11 @@ ChangeToOrientationWidget(vtkMRMLMarkupsFiducialNode* node)
   sphereWidget->CreateDefaultRepresentation();
   sphereWidget->SetInteractor(this->GetInteractor());
   sphereWidget->SetCurrentRenderer(this->GetRenderer());
+  vtkSphereRepresentation* sphereRep =
+    vtkSphereRepresentation::SafeDownCast(sphereWidget->GetRepresentation());
+  sphereRep->VisibilityOn();
+  sphereRep->HandleVisibilityOn();
+  sphereWidget->SetEnabled(1);
 
   this->Helper->UpdateWidgetForNode(sphereWidget, node);
 
@@ -1148,4 +1153,14 @@ PropagateMRMLToSeedWidget(vtkMRMLMarkupsFiducialNode* fiducialNode, vtkSeedWidge
 
   // enable processing of modified events
   this->Updating = 0;
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsFiducialDisplayableManager3D::ProcessMRMLNodesEvents(vtkObject *caller, unsigned long event, void *callData)
+{
+  vtkMRMLMarkupsFiducialNode* fiducialNode = vtkMRMLMarkupsFiducialNode::SafeDownCast(caller);
+  if (fiducialNode && event == vtkMRMLMarkupsFiducialNode::ChangeOrientationEvent)
+    this->ChangeToOrientationWidget(fiducialNode);
+  else
+    this->Superclass::ProcessMRMLNodesEvents(caller, event, callData);
 }

@@ -614,7 +614,7 @@ void qSlicerMarkupsModuleWidget::updateWidgetFromMRML()
         }
       }
     }
-  
+
   markupsNodeMRML = this->mrmlScene()->GetNodeByID(listID.c_str());
   vtkMRMLMarkupsNode *markupsNode = NULL;
   if (markupsNodeMRML)
@@ -1541,6 +1541,23 @@ void qSlicerMarkupsModuleWidget::onMoveMarkupDownPushButtonClicked()
 }
 
 //-----------------------------------------------------------------------------
+void qSlicerMarkupsModuleWidget::onChangeOrientationActionTriggered()
+{
+  Q_D(qSlicerMarkupsModuleWidget);
+
+  // get the active node
+  vtkMRMLNode *mrmlNode = d->activeMarkupMRMLNodeComboBox->currentNode();
+  vtkMRMLMarkupsFiducialNode *fiducialNode = vtkMRMLMarkupsFiducialNode::SafeDownCast(mrmlNode);
+  if (!fiducialNode)
+    {
+    qDebug() << "change orientation action: node wasn't a fiducial!";
+    return;
+    }
+
+  fiducialNode->ChangeToOrientationMode();
+}
+
+//-----------------------------------------------------------------------------
 void qSlicerMarkupsModuleWidget::onDeleteMarkupPushButtonClicked()
 {
   Q_D(qSlicerMarkupsModuleWidget);
@@ -2086,6 +2103,13 @@ void qSlicerMarkupsModuleWidget::onRightClickActiveMarkupTableWidget(QPoint pos)
   menu.addAction(deleteFiducialAction);
   QObject::connect(deleteFiducialAction, SIGNAL(triggered()),
                    this, SLOT(onDeleteMarkupPushButtonClicked()));
+
+  // Switch fiducial node to orientation node
+  QAction *changeOrientationAction =
+    new QAction(QString("Change orientation"), &menu);
+  menu.addAction(changeOrientationAction);
+  QObject::connect(changeOrientationAction, SIGNAL(triggered()),
+                   this, SLOT(onChangeOrientationActionTriggered()));
 
   // Jump slices
   QAction *jumpSlicesAction =
