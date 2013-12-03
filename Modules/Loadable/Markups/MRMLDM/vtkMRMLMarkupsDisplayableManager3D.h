@@ -47,15 +47,27 @@ public:
   vtkTypeRevisionMacro(vtkMRMLMarkupsDisplayableManager3D, vtkMRMLAbstractThreeDViewDisplayableManager);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  /// Hide/Show a widget so that the node's display node visibility setting
-  /// matches that of the widget
-  void UpdateWidgetVisibility(vtkMRMLMarkupsNode* node);
+  typedef vtkMRMLMarkupsDisplayableManagerHelper::NodeWidgets NodeWidgets;
+  typedef vtkMRMLMarkupsDisplayableManagerHelper::WidgetList WidgetList;
+  typedef vtkMRMLMarkupsDisplayableManagerHelper::WidgetListIt WidgetListIt;
+
+  /// Lock/Unlock all widgets based on the state of the nodes
+  void UpdateLockedAllWidgetsFromNodes();
+  /// Lock/unlock a node's widgets from interaction node
+  void UpdateLockedFromInteractionNode(vtkMRMLMarkupsNode* node);
+  /// Lock/Unlock all widgets from interaction node
+  void UpdateLockedAllWidgetsFromInteractionNode();
+  /// Lock/Unlock all widgets
+  void UpdateLockedAllWidgets(bool isLocked);
+  /// To be overridden. Describes how to lock/unlock the widgets of a
+  /// specific node type
+  virtual UpdateNodeWidgetsLocks(vtkMRMLMarkupsNode* node, bool isLocked);
 
   // the following functions must be public to be accessible by the callback
   /// Propagate properties of MRML node to widget.
-  virtual void PropagateMRMLToWidget(vtkMRMLMarkupsNode* node, vtkAbstractWidget * widget);
+  virtual void PropagateMRMLToWidget(vtkMRMLMarkupsNode* node, NodeWidgets * widget);
   /// Propagate properties of widget to MRML node.
-  virtual void PropagateWidgetToMRML(vtkAbstractWidget * widget, vtkMRMLMarkupsNode* node);
+  virtual void PropagateWidgetToMRML(NodeWidgets * widget, vtkMRMLMarkupsNode* node);
   /// Check if there are real changes between two sets of displayCoordinates
   bool GetDisplayCoordinatesChanged(double * displayCoordinates1, double * displayCoordinates2);
 
@@ -75,7 +87,7 @@ public:
 
   /// Create a new widget for this markups node and save it to the helper.
   /// Returns widget on success, null on failure.
-  vtkAbstractWidget *AddWidget(vtkMRMLMarkupsNode *markupsNode);
+  NodeWidgets * AddWidget(vtkMRMLMarkupsNode *markupsNode);
 
 //  vtkMRMLMarkupsDisplayableManagerHelper *  GetHelper() { return this->Helper; };
   vtkGetObjectMacro(Helper, vtkMRMLMarkupsDisplayableManagerHelper);
@@ -112,9 +124,10 @@ protected:
   virtual void OnMRMLDisplayableNodeModifiedEvent(vtkObject* caller);
 
   /// Observe one node
-  void SetAndObserveNode(vtkMRMLMarkupsNode *markupsNode);
-  /// Observe all associated nodes.
-  void SetAndObserveNodes();
+  ///
+  /// If overridden, implementations should call this method first to
+  /// add default markups observers
+  virtual void ObserveNode(vtkMRMLMarkupsNode *markupsNode);
 
   /// Observe the interaction node.
   void AddObserversToInteractionNode();
@@ -146,7 +159,7 @@ protected:
   /// Update a single seed from markup position, implemented by the subclasses, return
   /// true if the position changed
   virtual bool UpdateNthSeedPositionFromMRML(int vtkNotUsed(n),
-                 vtkAbstractWidget *vtkNotUsed(widget),
+                 NodeWidgets *vtkNotUsed(widget),
                  vtkMRMLMarkupsNode *vtkNotUsed(markupsNode))
     { return false; }
   /// Update just the position for the widget, implemented by subclasses.
@@ -178,11 +191,11 @@ protected:
   //
 
   /// Create a widget.
-  virtual vtkAbstractWidget * CreateWidget(vtkMRMLMarkupsNode* node);
+  virtual NodeWidgets * CreateWidget(vtkMRMLMarkupsNode* node);
   /// Gets called when widget was created
-  virtual void OnWidgetCreated(vtkAbstractWidget * widget, vtkMRMLMarkupsNode * node);
+  virtual void OnWidgetCreated(NodeWidgets * widget, vtkMRMLMarkupsNode * node);
   /// Get the widget of a node.
-  vtkAbstractWidget * GetWidget(vtkMRMLMarkupsNode * node);
+  NodeWidgets * GetWidget(vtkMRMLMarkupsNode * node);
 
   /// Check if it is the right displayManager
   virtual bool IsCorrectDisplayableManager();

@@ -45,10 +45,13 @@ protected:
   vtkMRMLMarkupsFiducialDisplayableManager3D(){this->Focus="vtkMRMLMarkupsFiducialNode";}
   virtual ~vtkMRMLMarkupsFiducialDisplayableManager3D(){}
 
+  // OVERRIDE
+  virtual UpdateNodeWidgetsLocks(vtkMRMLMarkupsNode* node, bool isLocked);
+
   /// Callback for click in RenderWindow
   virtual void OnClickInRenderWindow(double x, double y, const char *associatedNodeID);
   /// Create a widget.
-  virtual vtkAbstractWidget * CreateWidget(vtkMRMLMarkupsNode* node);
+  virtual NodeWidgets * CreateWidget(vtkMRMLMarkupsNode* node);
   /// Create new handle on widget when a new markup is added to a markups node
   virtual void OnMRMLMarkupsNodeMarkupAddedEvent(vtkMRMLMarkupsNode * markupsNode);
   /// Respond to the nth markup modified event
@@ -57,39 +60,34 @@ protected:
   virtual void OnMRMLMarkupsNodeMarkupRemovedEvent(vtkMRMLMarkupsNode * markupsNode);
 
   /// Gets called when widget was created
-  virtual void OnWidgetCreated(vtkAbstractWidget * widget, vtkMRMLMarkupsNode * node);
+  virtual void OnWidgetCreated(NodeWidgets * widget, vtkMRMLMarkupsNode * node);
 
   /// Update a single seed from MRML
   void SetNthSeed(int n, vtkMRMLMarkupsFiducialNode* fiducialNode, vtkSeedWidget *seedWidget);
   /// Propagate properties of MRML node to widget.
-  virtual void PropagateMRMLToWidget(vtkMRMLMarkupsNode* node, vtkAbstractWidget * widget);
+  virtual void PropagateMRMLToWidget(vtkMRMLMarkupsNode* node, NodeWidgets * widget);
 
   /// Propagate properties of widget to MRML node.
-  virtual void PropagateWidgetToMRML(vtkAbstractWidget * widget, vtkMRMLMarkupsNode* node);
+  virtual void PropagateWidgetToMRML(NodeWidgets * widget, vtkMRMLMarkupsNode* node);
 
-  /// Set up an observer on the interactor style to watch for key press events
-  virtual void AdditionnalInitializeStep();
   /// Respond to the interactor style event
   virtual void OnInteractorStyleEvent(int eventid);
 
   /// Update a single seed position from the node, return true if the position changed
-  virtual bool UpdateNthSeedPositionFromMRML(int n, vtkAbstractWidget *widget, vtkMRMLMarkupsNode *pointsNode);
+  virtual bool UpdateNthSeedPositionFromMRML(int n, NodeWidgets *widget, vtkMRMLMarkupsNode *pointsNode);
   /// Respond to control point modified events
-  virtual void UpdatePosition(vtkAbstractWidget *widget, vtkMRMLNode *node);
+  virtual void UpdatePosition(NodeWidgets *widget, vtkMRMLNode *node);
 
   // Clean up when scene closes
   virtual void OnMRMLSceneEndClose();
 
-  // Change node widget to a sphere widget for orientation interaction
-  void ChangeToOrientationWidget(vtkMRMLMarkupsFiducialNode* node);
-
-  void PropagateSphereWidgetToMRML(vtkSphereWidget2* widget, vtkMRMLMarkupsFiducialNode* node);
+  void PropagateSphereWidgetsToMRML(WidgetList& widgets, vtkMRMLMarkupsFiducialNode* node);
   void PropagateSeedWidgetToMRML(vtkSeedWidget* widget, vtkMRMLMarkupsFiducialNode* node);
 
-  void PropagateMRMLToSphereWidget(vtkMRMLMarkupsFiducialNode* node, vtkSphereWidget2* widget);
   void PropagateMRMLToSeedWidget(vtkMRMLMarkupsFiducialNode* node, vtkSeedWidget* widget);
+  void PropagateMRMLToSphereWidgets(vtkMRMLMarkupsFiducialNode* node, WidgetList& widgets);
 
-  virtual void ProcessMRMLNodesEvents(vtkObject *caller, unsigned long event, void *callData);
+  void AfterPropagateMRMLToWidget(vtkMRMLMarkupsFiducialNode* node);
 
 private:
 

@@ -43,12 +43,6 @@ public:
 
   virtual const char* GetIcon() {return ":/Icons/MarkupsMouseModePlace.png";};
 
-  /// Events
-  enum
-  {
-    ChangeOrientationEvent = 666666,
-  };
-
   //--------------------------------------------------------------------------
   // MRMLNode methods
   //--------------------------------------------------------------------------
@@ -122,6 +116,13 @@ public:
   /// Get world coordinates on nth fiducial
   void GetNthFiducialWorldCoordinates(int n, double coords[4]);
 
+  enum FiducialInteractionMode { POSITION_MODE, ORIENTATION_MODE };
+
+  FiducialInteractionMode GetFiducialMode() const;
+
+  /// Call event for DM to switch to change-position mode
+  void ChangeToPositionMode();
+
   /// Call event for DM to switch to change-orientation mode
   void ChangeToOrientationMode();
 
@@ -131,6 +132,7 @@ protected:
   vtkMRMLMarkupsFiducialNode(const vtkMRMLMarkupsFiducialNode&);
   void operator=(const vtkMRMLMarkupsFiducialNode&);
 
+  FiducialInteractionMode FiducialMode;
 };
 
 #endif

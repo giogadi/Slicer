@@ -109,7 +109,7 @@ public:
     this->DisplayableManager->PropagateWidgetToMRML(this->Widget, this->Node);
   }
 
-  void SetWidget(vtkAbstractWidget *w)
+  void SetWidget(NodeWidgets *w)
     {
     this->Widget = w;
     }
@@ -122,7 +122,7 @@ public:
     this->DisplayableManager = dm;
     }
 
-  vtkAbstractWidget * Widget;
+  NodeWidgets * Widget;
   vtkMRMLMarkupsNode * Node;
   vtkMRMLMarkupsDisplayableManager3D * DisplayableManager;
 };
@@ -137,9 +137,63 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::PrintSelf(ostream& os, vtkInden
   this->Helper->PrintSelf(os, indent);
 }
 
+namespace
+{
+  vtkAbstractWidget* createSeedWidget(vtkRenderWindowInteractor* interactor,
+                                      vtkRenderer* renderer)
+  {
+    vtkNew<vtkSeedRepresentation> rep;
+    vtkNew<vtkOrientedPolygonalHandleRepresentation3D> handle;
+
+    // default to a starburst glyph, update in propagate mrml to widget
+    vtkNew<vtkMarkupsGlyphSource2D> glyphSource;
+    glyphSource->SetGlyphType(vtkMRMLMarkupsDisplayNode::StarBurst2D);
+    glyphSource->Update();
+    glyphSource->SetScale(1.0);
+    handle->SetHandle(glyphSource->GetOutput());
+
+
+    rep->SetHandleRepresentation(handle.GetPointer());
+
+
+    //seed widget
+    vtkSeedWidget * seedWidget = vtkSeedWidget::New();
+
+    seedWidget->SetRepresentation(rep.GetPointer());
+
+    seedWidget->SetInteractor(interactor);
+    seedWidget->SetCurrentRenderer(renderer);
+
+    seedWidget->CompleteInteraction();
+
+    return seedWidget;
+  }
+
+  vtkAbstractWidget* createSphereWidget(vtkMRMLMarkupsNode* node,
+                                        vtkRenderWindowInteractor* interactor,
+                                        vtkRenderer* renderer,
+                                        vtkMRMLMarkupsDisplayableManager3D* dm)
+  {
+    vtkSphereWidget2* sphereWidget = vtkSphereWidget2::New();
+    sphereWidget->CreateDefaultRepresentation();
+    sphereWidget->SetInteractor(interactor);
+    sphereWidget->SetCurrentRenderer(renderer);
+
+    vtkMarkupsFiducialWidgetCallback3D *myCallback = vtkMarkupsFiducialWidgetCallback3D::New();
+    myCallback->SetNode(node);
+    myCallback->SetWidget(sphereWidget);
+    myCallback->SetDisplayableManager(dm);
+    sphereWidget->AddObserver(vtkCommand::EndInteractionEvent,myCallback);
+    sphereWidget->AddObserver(vtkCommand::InteractionEvent,myCallback);
+    myCallback->Delete();
+
+    return sphereWidget;
+  }
+}
+
 //---------------------------------------------------------------------------
 /// Create a new widget.
-vtkAbstractWidget * vtkMRMLMarkupsFiducialDisplayableManager3D::CreateWidget(vtkMRMLMarkupsNode* node)
+NodeWidgets * vtkMRMLMarkupsFiducialDisplayableManager3D::CreateWidget(vtkMRMLMarkupsNode* node)
 {
 
   if (!node)
@@ -156,47 +210,17 @@ vtkAbstractWidget * vtkMRMLMarkupsFiducialDisplayableManager3D::CreateWidget(vtk
     return 0;
     }
 
-  vtkMRMLMarkupsDisplayNode *displayNode = fiducialNode->GetMarkupsDisplayNode();
+  NodeWidgets* widget = new NodeWidgets;
+  widget->NodeWidget = createSeedWidget(this->GetInteractor(), this->GetRenderer());
 
-  if (!displayNode)
-    {
-    // std::cout<<"No DisplayNode!"<<std::endl;
-    }
+  // each markup's widget will be created on-the-fly somewhere in propagateMRMLToWidget()
 
-  vtkNew<vtkSeedRepresentation> rep;
-  vtkNew<vtkOrientedPolygonalHandleRepresentation3D> handle;
-
-  // default to a starburst glyph, update in propagate mrml to widget
-  vtkNew<vtkMarkupsGlyphSource2D> glyphSource;
-  glyphSource->SetGlyphType(vtkMRMLMarkupsDisplayNode::StarBurst2D);
-  glyphSource->Update();
-  glyphSource->SetScale(1.0);
-  handle->SetHandle(glyphSource->GetOutput());
-
-
-  rep->SetHandleRepresentation(handle.GetPointer());
-
-
-  //seed widget
-  vtkSeedWidget * seedWidget = vtkSeedWidget::New();
-  //seedWidget->CreateDefaultRepresentation(); not necessary
-
-  seedWidget->SetRepresentation(rep.GetPointer());
-
-  seedWidget->SetInteractor(this->GetInteractor());
-  seedWidget->SetCurrentRenderer(this->GetRenderer());
-
-  vtkDebugMacro("Fids CreateWidget: Created widget for node " << fiducialNode->GetID() << " with a representation");
-
-  seedWidget->CompleteInteraction();
-
-  return seedWidget;
-
-  }
+  return widget;
+}
 
 //---------------------------------------------------------------------------
 /// Tear down the widget creation
-void vtkMRMLMarkupsFiducialDisplayableManager3D::OnWidgetCreated(vtkAbstractWidget * widget, vtkMRMLMarkupsNode * node)
+void vtkMRMLMarkupsFiducialDisplayableManager3D::OnWidgetCreated(NodeWidgets * widget, vtkMRMLMarkupsNode * node)
 {
 
   if (!widget)
@@ -223,7 +247,7 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::OnWidgetCreated(vtkAbstractWidg
 }
 
 //---------------------------------------------------------------------------
-bool vtkMRMLMarkupsFiducialDisplayableManager3D::UpdateNthSeedPositionFromMRML(int n, vtkAbstractWidget *widget, vtkMRMLMarkupsNode *pointsNode)
+bool vtkMRMLMarkupsFiducialDisplayableManager3D::UpdateNthSeedPositionFromMRML(int n, NodeWidgets *widget, vtkMRMLMarkupsNode *pointsNode)
 {
   if (!pointsNode || !widget)
     {
@@ -349,7 +373,8 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::SetNthSeed(int n, vtkMRMLMarkup
   // visible on this slice
   bool fidVisible = true;
   if (displayNode->GetVisibility() == 0 ||
-      fiducialNode->GetNthFiducialVisibility(n) == 0)
+      fiducialNode->GetNthFiducialVisibility(n) == 0 ||
+      fiducialNode->GetFiducialMode() == vtkMRMLMarkupsFiducialNode::ORIENTATION_MODE)
     {
     fidVisible = false;
     }
@@ -371,6 +396,20 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::SetNthSeed(int n, vtkMRMLMarkup
     seedWidget->GetSeed(n)->EnabledOff();
     }
 
+  // TODO make this happen only once instead
+  bool seedWidgetShouldBeVisible =
+    displayNode->GetVisibility() != 0 &&
+    fiducialNode->GetFiducialMode() == vtkMRMLMarkupsFiducialNode::POSITION_MODE;
+  bool seedWidgetVisible = seedWidget->GetEnabled != 0;
+  if (seedWidgetVisible != seedWidgetShouldBeVisible)
+    {
+    if (seedWidgetShouldBeVisible)
+      seedWidget->EnabledOn();
+    else
+      seedWidget->EnabledOff();
+
+    seedWidget->CompleteInteraction();
+    }
 
   // update locked
   int listLocked = fiducialNode->GetLocked();
@@ -500,7 +539,7 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::SetNthSeed(int n, vtkMRMLMarkup
 
 //---------------------------------------------------------------------------
 /// Propagate properties of MRML node to widget.
-void vtkMRMLMarkupsFiducialDisplayableManager3D::PropagateMRMLToWidget(vtkMRMLMarkupsNode* node, vtkAbstractWidget * widget)
+void vtkMRMLMarkupsFiducialDisplayableManager3D::PropagateMRMLToWidget(vtkMRMLMarkupsNode* node, NodeWidgets * widget)
 {
   if (!widget)
     {
@@ -522,26 +561,44 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::PropagateMRMLToWidget(vtkMRMLMa
     return;
     }
 
+  this->Updating = 1;
+
   // cast to the specific widget
-  vtkSeedWidget* seedWidget = vtkSeedWidget::SafeDownCast(widget);
-  if (seedWidget)
-    this->PropagateMRMLToSeedWidget(fiducialNode, seedWidget);
-  else
+  vtkSeedWidget* seedWidget = vtkSeedWidget::SafeDownCast(widget->NodeWidget);
+  if (!seedWidget)
     {
-    vtkSphereWidget2* sphereWidget = vtkSphereWidget2::SafeDownCast(widget);
-    if (sphereWidget)
-      this->PropagateMRMLToSphereWidget(fiducialNode, sphereWidget);
-    else
+    vtkErrorMacro("vtkMRMLMarkupsFiducialDisplayableManager3D::PropagateMRMLToWidget: no seed widget!");
+    }
+  else
+    this->PropagateMRMLToSeedWidget(fiducialNode, seedWidget);
+
+  this->PropagateMRMLToSphereWidgets(fiducialNode, widget->MarkupWidgets);
+
+  // update lock status
+  this->UpdateLockedFromInteractionNode(fiducialNode);
+
+  // TODO: see if this can't be fit into the individual propagate methods
+  if (seedWidget)
+    seedWidget->Modified();
+  for (WidgetListIt it = widget->MarkupWidgets.begin(); it != widget->MarkupWidgets.end(); ++it)
+    {
+    if (*it)
       {
-      vtkErrorMacro("PropagateWidgetToMRML: Could not get seed or sphere widget!");
-      return;
+      (*it)->Modified();
+      vtkWidgetRepresentation* rep = (*it)->GetRepresentation();
+      if (rep)
+        rep->Modified();
       }
     }
+
+  // TODO: set visibility of individual widgets according to node's markups
+
+  this->Updating = 0;
 }
 
 //---------------------------------------------------------------------------
 /// Propagate properties of widget to MRML node.
-void vtkMRMLMarkupsFiducialDisplayableManager3D::PropagateWidgetToMRML(vtkAbstractWidget * widget, vtkMRMLMarkupsNode* node)
+void vtkMRMLMarkupsFiducialDisplayableManager3D::PropagateWidgetToMRML(NodeWidgets * widget, vtkMRMLMarkupsNode* node)
 {
 
   if (!widget)
@@ -565,22 +622,16 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::PropagateWidgetToMRML(vtkAbstra
    return;
    }
 
-  // cast to the specific widget and call corresponding propagate
-  // function
-  vtkSeedWidget* seedWidget = vtkSeedWidget::SafeDownCast(widget);
-  if (seedWidget)
-    this->PropagateSeedWidgetToMRML(seedWidget, fiducialNode);
-  else
+  // Call corresponding propagate functions on each widget
+  vtkSeedWidget* seedWidget = vtkSeedWidget::SafeDownCast(widget->NodeWidget);
+  if (!seedWidget)
     {
-    vtkSphereWidget2* sphereWidget = vtkSphereWidget2::SafeDownCast(widget);
-    if (sphereWidget)
-      this->PropagateSphereWidgetToMRML(sphereWidget, fiducialNode);
-    else
-      {
-      vtkErrorMacro("PropagateWidgetToMRML: Could not get seed or sphere widget!");
-      return;
-      }
+    vtkErrorMacro("PropagateWidgetToMRML: no seed widget!");
+    return;
     }
+  this->PropagateSeedWidgetToMRML(seedWidget, fiducialNode);
+
+  this->PropagateSphereWidgetsToMRML(widget->MarkupWidgets, fiducialNode);
 }
 
 //---------------------------------------------------------------------------
@@ -706,16 +757,6 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::OnClickInRenderWindow(double x,
 }
 
 //---------------------------------------------------------------------------
-/// observe key press events
-void vtkMRMLMarkupsFiducialDisplayableManager3D::AdditionnalInitializeStep()
-{
-  // don't add the key press event, as it triggers a crash on start up
-  //vtkDebugMacro("Adding an observer on the key press event");
-  this->AddInteractorStyleObservableEvent(vtkCommand::KeyPressEvent);
-}
-
-
-//---------------------------------------------------------------------------
 void vtkMRMLMarkupsFiducialDisplayableManager3D::OnInteractorStyleEvent(int eventid)
 {
   this->Superclass::OnInteractorStyleEvent(eventid);
@@ -808,6 +849,7 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::UpdatePosition(vtkAbstractWidge
 //---------------------------------------------------------------------------
 void vtkMRMLMarkupsFiducialDisplayableManager3D::OnMRMLSceneEndClose()
 {
+  // TODO: IS THIS REALLY NECESSARY?
   // clear out the map of glyph types
   this->Helper->ClearNodeGlyphTypes();
 }
@@ -822,20 +864,24 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::OnMRMLMarkupsNodeNthMarkupModif
     return;
     }
 
-  vtkAbstractWidget *widget = this->Helper->GetWidget(node);
+  NodeWidgets *widget = this->Helper->GetNodeWidgets(node);
   if (!widget)
     {
     vtkErrorMacro("OnMRMLMarkupsNodeNthMarkupModifiedEvent: a markup was added to a node that doesn't already have a widget! Returning..");
     return;
     }
 
-  vtkSeedWidget* seedWidget = vtkSeedWidget::SafeDownCast(widget);
+  vtkSeedWidget* seedWidget = vtkSeedWidget::SafeDownCast(widget->NodeWidget);
   if (!seedWidget)
    {
    vtkErrorMacro("OnMRMLMarkupsNodeNthMarkupModifiedEvent: Could not get seed widget!")
    return;
    }
   this->SetNthSeed(n, vtkMRMLMarkupsFiducialNode::SafeDownCast(node), seedWidget);
+
+  // TODO make it only target the one widget
+  this->PropagateMRMLToSphereWidgets(vtkMRMLMarkupsFiducialNode::SafeDownCast(node),
+                                     this->Helper->GetNodeWidget(node)->MarkupWidgets);
 }
 
 //---------------------------------------------------------------------------
@@ -847,7 +893,7 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::OnMRMLMarkupsNodeMarkupAddedEve
     {
     return;
     }
-  vtkAbstractWidget *widget = this->Helper->GetWidget(markupsNode);
+  vtkAbstractWidget *widget = this->Helper->GetNodeWidgets(markupsNode);
   if (!widget)
     {
     // TBD: create a widget?
@@ -869,6 +915,10 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::OnMRMLMarkupsNodeMarkupAddedEve
   vtkSeedRepresentation * seedRepresentation = vtkSeedRepresentation::SafeDownCast(seedWidget->GetRepresentation());
   seedRepresentation->NeedToRenderOn();
   seedWidget->Modified();
+
+  // Ensure a new sphere widget gets added as well
+  this->PropagateMRMLToSphereWidgets(vtkMRMLMarkupsFiducialNode::SafeDownCast(markupsNode),
+                                     this->Helper->GetNodeWidgets(markupsNode)->MarkupWidgets);
 }
 
 //---------------------------------------------------------------------------
@@ -880,7 +930,7 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::OnMRMLMarkupsNodeMarkupRemovedE
     {
     return;
     }
-  vtkAbstractWidget *widget = this->Helper->GetWidget(markupsNode);
+  vtkAbstractWidget *widget = this->Helper->GetNodeWidgets(markupsNode);
   if (!widget)
     {
     // TBD: create a widget?
@@ -888,43 +938,16 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::OnMRMLMarkupsNodeMarkupRemovedE
     return;
     }
 
+  // TODO: THIS IS HORRIBLE
   // for now, recreate the widget
   this->Helper->RemoveWidgetAndNode(markupsNode);
   this->AddWidget(markupsNode);
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLMarkupsFiducialDisplayableManager3D::
-ChangeToOrientationWidget(vtkMRMLMarkupsFiducialNode* node)
-{
-  vtkSphereWidget2* sphereWidget = vtkSphereWidget2::New();
-  sphereWidget->CreateDefaultRepresentation();
-  sphereWidget->SetInteractor(this->GetInteractor());
-  sphereWidget->SetCurrentRenderer(this->GetRenderer());
-  vtkSphereRepresentation* sphereRep =
-    vtkSphereRepresentation::SafeDownCast(sphereWidget->GetRepresentation());
-  sphereRep->VisibilityOn();
-  sphereRep->HandleVisibilityOn();
-  sphereWidget->SetEnabled(1);
-
-  this->Helper->UpdateWidgetForNode(sphereWidget, node);
-
-  // add the callback
-  vtkMarkupsFiducialWidgetCallback3D *myCallback = vtkMarkupsFiducialWidgetCallback3D::New();
-  myCallback->SetNode(node);
-  myCallback->SetWidget(sphereWidget);
-  myCallback->SetDisplayableManager(this);
-  sphereWidget->AddObserver(vtkCommand::EndInteractionEvent,myCallback);
-  sphereWidget->AddObserver(vtkCommand::InteractionEvent,myCallback);
-  myCallback->Delete();
-
-  this->PropagateMRMLToWidget(node, sphereWidget);
-}
-
-//---------------------------------------------------------------------------
 namespace
 {
-  void GenerateRandomFrameFromZ(const double z[3], double x[3], double y[3])
+  void GenerateArbitraryFrameFromZ(const double z[3], double x[3], double y[3])
   {
     double e1[] = {1.0, 0.0, 0.0};
     double e2[] = {0.0, 1.0, 0.0};
@@ -964,49 +987,59 @@ namespace
 
 //---------------------------------------------------------------------------
 void vtkMRMLMarkupsFiducialDisplayableManager3D::
-PropagateSphereWidgetToMRML(vtkSphereWidget2* widget, vtkMRMLMarkupsFiducialNode* node)
+PropagateSphereWidgetsToMRML(WidgetList& widgets, vtkMRMLMarkupsFiducialNode* node)
 {
-  if (node->GetNumberOfFiducials() < 1)
+  if (widgets.size() != node->GetNumberOfFiducials())
     {
-    vtkDebugMacro("PropagateSphereWidgetToMRML: node had no markups");
+    vtkErrorMacro("PropagateSphereWidgetsToMRML: Nodes and widgets don't match up!");
     return;
     }
 
-  vtkSphereRepresentation* sphereRep = vtkSphereRepresentation::SafeDownCast(widget->GetRepresentation());
-  if (!sphereRep)
+  for (int wIdx = 0; wIdx < widgets.size(); ++wIdx)
     {
-    vtkDebugMacro("PropagateWidgetToMRML: widget's representation was not a sphere rep!");
-    return;
+    vtkSphereWidget2* widget = vtkSphereWidget2::SafeDownCast(widgets[wIdx]);
+    if (!widget)
+      {
+      vtkErrorMacro("PropagateSphereWidgetsToMRML: no sphere widget!");
+      return;
+      }
+
+    vtkSphereRepresentation* sphereRep = vtkSphereRepresentation::SafeDownCast(widget->GetRepresentation());
+    if (!sphereRep)
+      {
+      vtkDebugMacro("PropagateWidgetToMRML: widget's representation was not a sphere rep!");
+      return;
+      }
+
+    this->Updating = 1;
+
+    double direction[3];
+    sphereRep->GetHandleDirection(direction);
+
+    vtkDebugMacro("PropagateWidgetToMRML: " << direction[0] << " " << direction[1] << " " << direction[2]);
+
+    double x[3], y[3];
+    GenerateArbitraryFrameFromZ(direction, x, y);
+
+    double R[3][3];
+    for (int i = 0; i < 3; ++i)
+      {
+      R[i][0] = x[i];
+      R[i][1] = y[i];
+      R[i][2] = direction[i];
+      }
+    double q[4];
+    vtkMath::Matrix3x3ToQuaternion(R, q);
+
+    int markupIdx = wIdx;
+    node->SetNthMarkupOrientationFromArray(markupIdx, q);
+
+    node->Modified();
+
+    node->InvokeEvent(vtkMRMLMarkupsNode::PointModifiedEvent,(void*)&markupIdx);
+
+    this->Updating = 0;
     }
-
-  this->Updating = 1;
-
-  double direction[3];
-  sphereRep->GetHandleDirection(direction);
-
-  vtkDebugMacro("PropagateWidgetToMRML: " << direction[0] << " " << direction[1] << " " << direction[2]);
-
-  double x[3], y[3];
-  GenerateRandomFrameFromZ(direction, x, y);
-
-  double R[3][3];
-  for (int i = 0; i < 3; ++i)
-    {
-    R[i][0] = x[i];
-    R[i][1] = y[i];
-    R[i][2] = direction[i];
-    }
-  double q[4];
-  vtkMath::Matrix3x3ToQuaternion(R, q);
-
-  int markupIdx = 0;
-  node->SetNthMarkupOrientationFromArray(markupIdx, q);
-
-  node->Modified();
-
-  node->InvokeEvent(vtkMRMLMarkupsNode::PointModifiedEvent,(void*)&markupIdx);
-
-  this->Updating = 0;
 }
 
 //---------------------------------------------------------------------------
@@ -1077,50 +1110,85 @@ PropagateSeedWidgetToMRML(vtkSeedWidget* seedWidget, vtkMRMLMarkupsFiducialNode*
 
 //---------------------------------------------------------------------------
 void vtkMRMLMarkupsFiducialDisplayableManager3D::
-PropagateMRMLToSphereWidget(vtkMRMLMarkupsFiducialNode* node, vtkSphereWidget2* widget)
+PropagateMRMLToSphereWidgets(vtkMRMLMarkupsFiducialNode* node, WidgetList& widgets)
 {
-  if (node->GetNumberOfFiducials() < 1)
+  // If fiducials have been added to this node, create corresponding
+  // widgets
+  if (node->GetNumberOfFiducials() > widgets.size())
     {
-    vtkErrorMacro("PropagateMRMLToSphereWidget: node has no fiducials!");
+    vtkDebugMacro("PropagateMRMLToSphereWidgets: Node fiducial count doesn't match widget count!");
+    vtkDebugMacro("Fiducials: " << node->GetNumberOfFiducials() << " Widgets: " << widgets.size());
+
+    for (int i = (int) widgets.size(); i < node->GetNumberOfFiducials(); ++i)
+      widgets.push_back(createSphereWidget(node, this->GetInteractor(), this->GetRenderer(), this));
+    }
+  else if (node->GetNumberOfFiducials() < widgets.size())
+    {
+    vtkErrorMacro("ERROR: WHY ARE THERE MORE WIDGETS THAN FIDUCIALS?!?!?!");
     return;
     }
 
-  vtkSphereRepresentation* sphereRep = vtkSphereRepresentation::SafeDownCast(widget->GetRepresentation());
-  if (!sphereRep)
+  for (unsigned wIdx = 0; wIdx < widgets.size(); ++wIdx)
     {
-    vtkErrorMacro("PropgateMRMLToSphereWidget: widget representation was not a sphere representation!");
-    return;
+    vtkSphereWidget2* w = vtkSphereWidget2::SafeDownCast(widgets[wIdx]);
+    if (!w)
+      {
+      vtkErrorMacro("PropagateMRMLToSphereWidgets: widget " << wIdx << " is NULL!");
+      return;
+      }
+
+    vtkSphereRepresentation* sphereRep = vtkSphereRepresentation::SafeDownCast(w->GetRepresentation());
+    if (!sphereRep)
+      {
+      vtkErrorMacro("PropagateMRMLToSphereWidgets: widget " << wIdx << "'s representation was not a sphere representation!");
+      return;
+      }
+
+    // Set center of widget
+    double p[3];
+    node->GetNthFiducialPosition(wIdx, p);
+    sphereRep->SetCenter(p);
+
+    // Set direction of widget
+    double q[4];
+    node->GetNthMarkupOrientation(wIdx, q);
+    double R[3][3];
+    vtkMath::QuaternionToMatrix3x3(q, R);
+    sphereRep->SetHandleDirection(R[0][2], R[1][2], R[2][2]);
+
+    // TODO check if we really need to make the widget
+    // visible/invisible or just toggle enabled
+    bool isNodeVisible = node->GetDisplayNode->GetVisibility() != 0;
+    bool isMarkupVisible = node->GetNthFiducialVisibility(wIdx);
+    bool shouldBeVisible =
+      isNodeVisible &&
+      isMarkupVisible &&
+      node->GetFiducialMode() == vtkMRMLMarkupsFiducialNode::ORIENTATION_MODE;
+    bool isWidgetVisible = w->GetEnabled != 0;
+    if (isWidgetVisible != shouldBeVisible)
+      {
+      if (shouldBeVisible)
+        {
+        sphereRep->VisibilityOn();
+        sphereRep->HandleVisibilityOn();
+        w->EnabledOn();
+        }
+      else
+        {
+        sphereRep->VisibilityOff();
+        sphereRep->HandleVisibilityOff();
+        w->EnabledOff();
+        }
+      }
+
+    // TODO do we need to also update locked status?
     }
-
-  this->Updating = 1;
-
-  int markupIdx = 0;
-
-  // Set center of widget
-  double p[3];
-  node->GetNthFiducialPosition(markupIdx, p);
-  sphereRep->SetCenter(p);
-
-  // Set direction of widget
-  double q[4];
-  node->GetNthMarkupOrientation(markupIdx, q);
-  double R[3][3];
-  vtkMath::QuaternionToMatrix3x3(q, R);
-  sphereRep->SetHandleDirection(R[0][2], R[1][2], R[2][2]);
-
-  sphereRep->NeedToRenderOn();
-  sphereRep->Modified();
-
-  this->Updating = 0;
 }
 
 //---------------------------------------------------------------------------
 void vtkMRMLMarkupsFiducialDisplayableManager3D::
 PropagateMRMLToSeedWidget(vtkMRMLMarkupsFiducialNode* fiducialNode, vtkSeedWidget* seedWidget)
 {
-  // disable processing of modified events
-  this->Updating = 1;
-
   // now get the widget properties (coordinates, measurement etc.) and if the mrml node has changed, propagate the changes
   vtkMRMLMarkupsDisplayNode *displayNode = fiducialNode->GetMarkupsDisplayNode();
 
@@ -1136,31 +1204,90 @@ PropagateMRMLToSeedWidget(vtkMRMLMarkupsFiducialNode* fiducialNode, vtkSeedWidge
 
   for (int n = 0; n < numberOfFiducials; n++)
     {
-    // std::cout << "Fids PropagateMRMLToWidget: n = " << n << std::endl;
     this->SetNthSeed(n, fiducialNode, seedWidget);
     }
-
-  // update lock status
-  this->Helper->UpdateLocked(fiducialNode, this->GetInteractionNode());
-
-  // update visibility of widget as a whole
-  // std::cout << "PropagateMRMLToWidget: calling UpdateWidgetVisibility" << std::endl;
-  this->UpdateWidgetVisibility(fiducialNode);
-
-  vtkSeedRepresentation * seedRepresentation = vtkSeedRepresentation::SafeDownCast(seedWidget->GetRepresentation());
-  seedRepresentation->NeedToRenderOn();
-  seedWidget->Modified();
-
-  // enable processing of modified events
-  this->Updating = 0;
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLMarkupsFiducialDisplayableManager3D::ProcessMRMLNodesEvents(vtkObject *caller, unsigned long event, void *callData)
+void vtkMRMLMarkupsFiducialDisplayableManager3D::UpdateNodeWidgetsLocks(vtkMRMLMarkupsNode* node, bool isLocked)
 {
-  vtkMRMLMarkupsFiducialNode* fiducialNode = vtkMRMLMarkupsFiducialNode::SafeDownCast(caller);
-  if (fiducialNode && event == vtkMRMLMarkupsFiducialNode::ChangeOrientationEvent)
-    this->ChangeToOrientationWidget(fiducialNode);
-  else
-    this->Superclass::ProcessMRMLNodesEvents(caller, event, callData);
+  if (!node)
+    {
+    vtkErrorMacro("vtkMRMLMarkupsFiducialDisplayableManager3D::UpdateNodeWidgetsLocks: node is null!");
+    return;
+    }
+
+  NodeWidgets* widget = this->Helper->GetNodeWidgets(node);
+  if (!widget)
+    {
+    vtkErrorMacro("vtkMRMLMarkupsFiducialDisplayableManager3D::UpdateNodeWidgetsLocks: node widget is null!");
+    return;
+    }
+
+  if (!widget->NodeWidget)
+    {
+    vtkErrorMacro("vtkMRMLMarkupsFiducialDisplayableManager3D::UpdateNodeWidgetsLocks: seed widget is null!");
+    return;
+    }
+
+  if (widget->WidgetList.size() != node->GetNumberOfMarkups())
+    {
+    vtkErrorMacro("vtkMRMLMarkupsFiducialDisplayableManager3D::UpdateNodeWidgetsLocks: node fiducials and widgets don't match up!");
+    return;
+    }
+
+  // First update locked status of seed widget
+  bool seedWidgetLocked = widget->NodeWidget->GetProcessEvents() == 0;
+  if (isLocked != seedWidgetLocked)
+    {
+    if (isLocked)
+      widget->NodeWidget->ProcessEventsOff();
+    else
+      {
+      // Since individual markups might be locked, lock individual seeds
+      widget->NodeWidget->ProcessEventsOn();
+
+      int numMarkups = node->GetNumberOfMarkups();
+      for (int i = 0; i < numMarkups; ++i)
+        {
+        if (seedWidget->GetSeed(i) == NULL)
+          {
+          vtkErrorMacro("UpdateLocked: missing seed at index " << i);
+          continue;
+          }
+        bool isLockedOnNthMarkup = node->GetNthMarkupLocked(i);
+        bool isLockedOnNthSeed = seedWidget->GetSeed(i)->GetProcessEvents() == 0;
+        if (isLockedOnNthMarkup && !isLockedOnNthSeed)
+          {
+          // lock it
+          seedWidget->GetSeed(i)->ProcessEventsOff();
+          }
+        else if (!isLockedOnNthMarkup && isLockedOnNthSeed)
+          {
+          // unlock it
+          seedWidget->GetSeed(i)->ProcessEventsOn();
+          }
+        }
+      }
+    }
+
+  // Update locked status for sphere widgets
+  int numMarkups = node->GetNumberOfMarkups();
+  for (int i = 0; i < numMarkups; ++i)
+    {
+    if (seedWidget->GetSeed(i) == NULL)
+      {
+      vtkErrorMacro("UpdateLocked: missing seed at index " << i);
+      continue;
+      }
+    bool sphereWidgetLocked = widget->WidgetList[i]->GetProcessEvents == 0;
+    bool shouldBeLocked = isLocked || node->GetNthMarkupLocked(i);
+    if (sphereWidgetLocked != shouldBeLocked)
+      {
+      if (shouldBeLocked)
+        widget->WidgetList[i]->ProcessEventsOff();
+      else
+        widget->WidgetList[i]->ProcessEventsOn();
+      }
+    }
 }

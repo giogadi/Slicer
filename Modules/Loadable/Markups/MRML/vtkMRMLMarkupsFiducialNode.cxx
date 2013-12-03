@@ -32,7 +32,8 @@ vtkMRMLNodeNewMacro(vtkMRMLMarkupsFiducialNode);
 
 
 //----------------------------------------------------------------------------
-vtkMRMLMarkupsFiducialNode::vtkMRMLMarkupsFiducialNode()
+vtkMRMLMarkupsFiducialNode::vtkMRMLMarkupsFiducialNode() :
+  FiducialMode(POSITION_MODE)
 {
 
 }
@@ -247,7 +248,27 @@ void vtkMRMLMarkupsFiducialNode::GetNthFiducialWorldCoordinates(int n, double co
 }
 
 //---------------------------------------------------------------------------
+void vtkMRMLMarkupsFiducialNode::GetFiducialMode() const
+{
+  return this->FiducialMode;
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsFiducialNode::ChangeToPositionMode()
+{
+  if (this->FiducialMode != POSITION_MODE)
+  {
+    this->FiducialMode = POSITION_MODE;
+    this->Modified();
+  }
+}
+
+//---------------------------------------------------------------------------
 void vtkMRMLMarkupsFiducialNode::ChangeToOrientationMode()
 {
-  this->InvokeEvent(vtkMRMLMarkupsFiducialNode::ChangeOrientationEvent);
+  if (this->FiducialMode != ORIENTATION_MODE)
+  {
+    this->FiducialMode = ORIENTATION_MODE;
+    this->Modified();
+  }
 }

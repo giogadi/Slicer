@@ -54,25 +54,21 @@ public:
   vtkTypeRevisionMacro(vtkMRMLMarkupsDisplayableManagerHelper, vtkObject);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  /// Lock/Unlock all widgets based on the state of the nodes
-  void UpdateLockedAllWidgetsFromNodes();
-  /// Lock/Unlock all widgets from interaction node
-  void UpdateLockedAllWidgetsFromInteractionNode(vtkMRMLInteractionNode* interactionNode);
-  /// Lock/Unlock all widgets
-  void UpdateLockedAllWidgets(bool locked);
-  /// Lock/Unlock a widget. If no interaction node is passed in, don't take the
-  /// mouse mode into account, if it is passed in, widgets get locked while in
-  /// Place mode
-  void UpdateLocked(vtkMRMLMarkupsNode* node, vtkMRMLInteractionNode *interactionNode = NULL);
+  typedef std::vector<vtkAbstractWidget*> WidgetList;
+  typedef std::vector<vtkAbstractWidget*>::iterator WidgetListIt;
+  struct NodeWidgets
+  {
+    ~NodeWidgets();
+
+    vtkAbstractWidget* NodeWidget;
+    WidgetList         MarkupWidgets;
+  };
 
   /// Keep track of the mapping between widgets and nodes
-  void RecordWidgetForNode(vtkAbstractWidget* widget, vtkMRMLMarkupsNode *node);
+  void RecordWidgetForNode(NodeWidgets* widget, vtkMRMLMarkupsNode *node);
 
-  /// Update the widget for the given node
-  void UpdateWidgetForNode(vtkAbstractWidget* widget, vtkMRMLMarkupsNode *node);
-
-  /// Get a vtkAbstractWidget* given a node
-  vtkAbstractWidget * GetWidget(vtkMRMLMarkupsNode * node);
+  /// Get a NodeWidget* given a node
+  NodeWidgets * GetNodeWidgets(vtkMRMLMarkupsNode * node);
   /// ...and its associated vtkAbstractWidget* for Slice intersection representation
   vtkAbstractWidget * GetIntersectionWidget(vtkMRMLMarkupsNode * node);
   /// ...and its associated vtkAbstractWidget* for Slice projection representation. There is one
@@ -94,11 +90,11 @@ public:
   /// Typedef for iterator over the list of nodes managed by the DisplayableManager
   typedef std::vector<vtkMRMLMarkupsNode*>::iterator MarkupsNodeListIt;
 
-  /// Map of vtkWidget indexed using associated node ID
-  std::map<vtkMRMLMarkupsNode*, vtkAbstractWidget*> Widgets;
+  /// Map of NodeWidget indexed using associated node ID
+  std::map<vtkMRMLMarkupsNode*, NodeWidgets*> Widgets;
 
   /// .. and its associated convenient typedef
-  typedef std::map<vtkMRMLMarkupsNode*, vtkAbstractWidget*>::iterator WidgetsIt;
+  typedef std::map<vtkMRMLMarkupsNode*, NodeWidgets*>::iterator WidgetsIt;
 
   /// Map of vtkWidgets to reflect the Slice intersections indexed using associated node ID
   std::map<vtkMRMLMarkupsNode*, vtkAbstractWidget*> WidgetIntersections;
