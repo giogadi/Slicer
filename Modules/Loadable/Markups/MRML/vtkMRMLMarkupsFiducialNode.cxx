@@ -257,18 +257,32 @@ void vtkMRMLMarkupsFiducialNode::GetFiducialMode() const
 void vtkMRMLMarkupsFiducialNode::ChangeToPositionMode()
 {
   if (this->FiducialMode != POSITION_MODE)
-  {
+    {
     this->FiducialMode = POSITION_MODE;
     this->Modified();
-  }
+    }
 }
 
 //---------------------------------------------------------------------------
 void vtkMRMLMarkupsFiducialNode::ChangeToOrientationMode()
 {
   if (this->FiducialMode != ORIENTATION_MODE)
-  {
+    {
     this->FiducialMode = ORIENTATION_MODE;
     this->Modified();
-  }
+    }
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsFiducialNode::ToggleMode()
+{
+  switch (this->FiducialMode)
+    {
+    case POSITION_MODE:
+      this->ChangeToOrientationMode();
+      break;
+    case ORIENTATION_MODE:
+      this->ChangeToPositionMode();
+      break;
+    }
 }

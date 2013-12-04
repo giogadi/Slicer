@@ -1541,7 +1541,7 @@ void qSlicerMarkupsModuleWidget::onMoveMarkupDownPushButtonClicked()
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerMarkupsModuleWidget::onChangeOrientationActionTriggered()
+void qSlicerMarkupsModuleWidget::onToggleNodeModeActionTriggered()
 {
   Q_D(qSlicerMarkupsModuleWidget);
 
@@ -1554,7 +1554,7 @@ void qSlicerMarkupsModuleWidget::onChangeOrientationActionTriggered()
     return;
     }
 
-  fiducialNode->ChangeToOrientationMode();
+  fiducialNode->ToggleMode();
 }
 
 //-----------------------------------------------------------------------------
@@ -2104,12 +2104,12 @@ void qSlicerMarkupsModuleWidget::onRightClickActiveMarkupTableWidget(QPoint pos)
   QObject::connect(deleteFiducialAction, SIGNAL(triggered()),
                    this, SLOT(onDeleteMarkupPushButtonClicked()));
 
-  // Switch fiducial node to orientation node
-  QAction *changeOrientationAction =
-    new QAction(QString("Change orientation"), &menu);
-  menu.addAction(changeOrientationAction);
-  QObject::connect(changeOrientationAction, SIGNAL(triggered()),
-                   this, SLOT(onChangeOrientationActionTriggered()));
+  // Toggle selected node between position/orientation mode
+  QAction *toggleNodeModeAction =
+    new QAction(QString("Toggle position/orientation mode"), &menu);
+  menu.addAction(toggleNodeModeAction);
+  QObject::connect(toggleNodeModeAction, SIGNAL(triggered()),
+                   this, SLOT(onToggleNodeModeActionTriggered()));
 
   // Jump slices
   QAction *jumpSlicesAction =

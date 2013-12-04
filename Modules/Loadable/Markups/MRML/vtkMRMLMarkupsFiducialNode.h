@@ -126,6 +126,10 @@ public:
   /// Call event for DM to switch to change-orientation mode
   void ChangeToOrientationMode();
 
+  /// Switch between Position mode and Orientation mode and call
+  /// appropriate event
+  void ToggleMode();
+
 protected:
   vtkMRMLMarkupsFiducialNode();
   ~vtkMRMLMarkupsFiducialNode();

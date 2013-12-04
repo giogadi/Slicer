@@ -190,7 +190,9 @@ public slots:
   /// markups nodes in the scene
   void moveSelectedToNamedList(QString listName);
 
-  void onChangeOrientationActionTriggered();
+  // Respond to user toggling the selected node's mode (position or
+  // orientation)
+  void onToggleNodeModeActionTriggered();
 
   /// Enable/disable editing the table if the markups node is un/locked
   void onActiveMarkupsNodeLockModifiedEvent();
