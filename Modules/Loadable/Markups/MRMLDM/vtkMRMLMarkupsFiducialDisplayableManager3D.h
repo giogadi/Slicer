@@ -87,6 +87,9 @@ protected:
 
   void AfterPropagateMRMLToWidget(vtkMRMLMarkupsFiducialNode* node);
 
+  // TRYING THIS OUT sorry mother
+  bool PropagatingWidgetToMRML;
+
 private:
 
   vtkMRMLMarkupsFiducialDisplayableManager3D(const vtkMRMLMarkupsFiducialDisplayableManager3D&); /// Not implemented

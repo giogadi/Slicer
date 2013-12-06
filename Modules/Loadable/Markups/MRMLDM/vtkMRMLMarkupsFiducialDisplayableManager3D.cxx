@@ -72,7 +72,7 @@ public:
 
   vtkMarkupsFiducialWidgetCallback3D(){}
 
-  virtual void Execute (vtkObject *vtkNotUsed(caller), unsigned long event, void *vtkNotUsed(callData))
+  virtual void Execute (vtkObject *caller, unsigned long event, void *vtkNotUsed(callData))
   {
     if (event ==  vtkCommand::PlacePointEvent)
       {
@@ -133,6 +133,7 @@ public:
 vtkMRMLMarkupsFiducialDisplayableManager3D::vtkMRMLMarkupsFiducialDisplayableManager3D()
 {
   this->Focus="vtkMRMLMarkupsFiducialNode";
+  this->PropagatingWidgetToMRML = false;
 }
 
 //---------------------------------------------------------------------------
@@ -532,6 +533,9 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::SetNthSeed(int n, vtkMRMLMarkup
 /// Propagate properties of MRML node to widget.
 void vtkMRMLMarkupsFiducialDisplayableManager3D::PropagateMRMLToWidget(vtkMRMLMarkupsNode* node, NodeWidgets * widget)
 {
+  if (this->PropagatingWidgetToMRML)
+    return;
+
   if (!widget)
     {
     vtkErrorMacro("PropagateMRMLToWidget: Widget was null!")
@@ -590,7 +594,6 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::PropagateMRMLToWidget(vtkMRMLMa
 /// Propagate properties of widget to MRML node.
 void vtkMRMLMarkupsFiducialDisplayableManager3D::PropagateWidgetToMRML(NodeWidgets * widget, vtkMRMLMarkupsNode* node)
 {
-
   if (!widget)
     {
     vtkErrorMacro("PropagateWidgetToMRML: Widget was null!")
@@ -619,9 +622,16 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::PropagateWidgetToMRML(NodeWidge
     vtkErrorMacro("PropagateWidgetToMRML: no seed widget!");
     return;
     }
-  this->PropagateSeedWidgetToMRML(seedWidget, fiducialNode);
 
-  this->PropagateSphereWidgetsToMRML(widget->MarkupWidgets, fiducialNode);
+  this->PropagatingWidgetToMRML = true;
+
+  // TODO check if these conditionals are still necessary
+  if (fiducialNode->GetFiducialMode() == vtkMRMLMarkupsFiducialNode::POSITION_MODE)
+    this->PropagateSeedWidgetToMRML(seedWidget, fiducialNode);
+  else if (fiducialNode->GetFiducialMode() == vtkMRMLMarkupsFiducialNode::ORIENTATION_MODE)
+    this->PropagateSphereWidgetsToMRML(widget->MarkupWidgets, fiducialNode);
+
+  this->PropagatingWidgetToMRML = false;
 }
 
 //---------------------------------------------------------------------------
@@ -1127,14 +1137,6 @@ PropagateMRMLToSphereWidgets(vtkMRMLMarkupsFiducialNode* node, NodeWidgets* node
     // We do this really stupidly because vtkSphereWidget2's
     // SetHandleDirection is broken
     sphereRep->SetHandlePosition(p[0]+R[0][2], p[1]+R[1][2], p[2]+R[2][2]);
-
-    // DEBUG
-    // double u[3];
-    // sphereRep->GetCenter(u);
-    // std::cout << wIdx << " " << u[0] << " " << u[1] << " " << u[2] << " ";
-    // sphereRep->GetHandlePosition(u);
-    // std::cout << u[0] << " " << u[1] << " " << u[2] << " ";
-    // std::cout << R[0][2] << " " << R[1][2] << " " << R[2][2] << std::endl;
 
     // TODO check if we really need to make the widget
     // visible/invisible or just toggle enabled
