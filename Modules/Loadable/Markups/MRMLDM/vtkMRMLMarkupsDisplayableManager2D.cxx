@@ -74,7 +74,7 @@ vtkCxxRevisionMacro (vtkMRMLMarkupsDisplayableManager2D, "$Revision: 1.2 $");
 //---------------------------------------------------------------------------
 vtkMRMLMarkupsDisplayableManager2D::vtkMRMLMarkupsDisplayableManager2D()
 {
-  this->Helper = vtkMRMLMarkupsDisplayableManagerHelper::New();
+  this->Helper = vtkMRMLMarkupsDisplayableManagerHelper2D::New();
   this->ClickCounter = vtkMRMLMarkupsClickCounter::New();
   this->DisableInteractorStyleEventsProcessing = 0;
   this->Updating = 0;
@@ -159,7 +159,7 @@ void vtkMRMLMarkupsDisplayableManager2D::SetAndObserveNodes()
 
 
   // run through all associated nodes
-  vtkMRMLMarkupsDisplayableManagerHelper::MarkupsNodeListIt it;
+  vtkMRMLMarkupsDisplayableManagerHelper2D::MarkupsNodeListIt it;
   for(it = this->Helper->MarkupsNodeList.begin();
       it != this->Helper->MarkupsNodeList.end();
       ++it)
@@ -224,7 +224,7 @@ void vtkMRMLMarkupsDisplayableManager2D::RequestRender()
 void vtkMRMLMarkupsDisplayableManager2D::RemoveMRMLObservers()
 {
   // run through all associated nodes
-  vtkMRMLMarkupsDisplayableManagerHelper::MarkupsNodeListIt it;
+  vtkMRMLMarkupsDisplayableManagerHelper2D::MarkupsNodeListIt it;
   it = this->Helper->MarkupsNodeList.begin();
   while(it != this->Helper->MarkupsNodeList.end())
     {
@@ -443,7 +443,7 @@ void vtkMRMLMarkupsDisplayableManager2D::OnMRMLSceneNodeAdded(vtkMRMLNode* node)
   vtkDebugMacro("OnMRMLSceneNodeAddedEvent:  node " << node->GetID());
 
   // Node added should not be already managed
-  vtkMRMLMarkupsDisplayableManagerHelper::MarkupsNodeListIt it = std::find(
+  vtkMRMLMarkupsDisplayableManagerHelper2D::MarkupsNodeListIt it = std::find(
       this->Helper->MarkupsNodeList.begin(),
       this->Helper->MarkupsNodeList.end(),
       markupsNode);
@@ -756,7 +756,7 @@ void vtkMRMLMarkupsDisplayableManager2D::UpdateWidgetVisibility(vtkMRMLMarkupsNo
 void vtkMRMLMarkupsDisplayableManager2D::OnMRMLSliceNodeModifiedEvent()
 {
   // run through all markup nodes in the helper
-  vtkMRMLMarkupsDisplayableManagerHelper::MarkupsNodeListIt it;
+  vtkMRMLMarkupsDisplayableManagerHelper2D::MarkupsNodeListIt it;
   it = this->Helper->MarkupsNodeList.begin();
   while(it != this->Helper->MarkupsNodeList.end())
     {

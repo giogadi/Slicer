@@ -23,10 +23,10 @@
 
 // MarkupsModule/MRMLDisplayableManager includes
 #include "vtkMRMLMarkupsClickCounter.h"
-#include "vtkMRMLMarkupsDisplayableManagerHelper.h"
 
 // MRMLDisplayableManager includes
 #include <vtkMRMLAbstractSliceViewDisplayableManager.h>
+#include <vtkMRMLMarkupsDisplayableManagerHelper2D.h>
 
 // VTK includes
 #include <vtkHandleWidget.h>
@@ -91,7 +91,7 @@ public:
   /// Returns widget on success, null on failure.
   vtkAbstractWidget *AddWidget(vtkMRMLMarkupsNode *markupsNode);
 
-  vtkMRMLMarkupsDisplayableManagerHelper *  GetHelper() { return this->Helper; };
+  vtkMRMLMarkupsDisplayableManagerHelper2D *  GetHelper() { return this->Helper; };
 
   /// Checks if this 2D displayable manager is in light box mode. Returns true
   /// if there is a slice node and it has grid columns or rows greater than 1,
@@ -245,7 +245,7 @@ protected:
   /// Accessor for internal flag that disables interactor style event processing
   vtkGetMacro(DisableInteractorStyleEventsProcessing, int);
 
-  vtkMRMLMarkupsDisplayableManagerHelper * Helper;
+  vtkMRMLMarkupsDisplayableManagerHelper2D * Helper;
 
   double LastClickWorldCoordinates[4];
 

@@ -42,11 +42,11 @@ public:
 
 protected:
 
-  vtkMRMLMarkupsFiducialDisplayableManager3D(){this->Focus="vtkMRMLMarkupsFiducialNode";}
+  vtkMRMLMarkupsFiducialDisplayableManager3D();
   virtual ~vtkMRMLMarkupsFiducialDisplayableManager3D(){}
 
   // OVERRIDE
-  virtual UpdateNodeWidgetsLocks(vtkMRMLMarkupsNode* node, bool isLocked);
+  virtual void UpdateNodeWidgetsLocks(vtkMRMLMarkupsNode* node, bool isLocked);
 
   /// Callback for click in RenderWindow
   virtual void OnClickInRenderWindow(double x, double y, const char *associatedNodeID);
@@ -74,9 +74,7 @@ protected:
   virtual void OnInteractorStyleEvent(int eventid);
 
   /// Update a single seed position from the node, return true if the position changed
-  virtual bool UpdateNthSeedPositionFromMRML(int n, NodeWidgets *widget, vtkMRMLMarkupsNode *pointsNode);
-  /// Respond to control point modified events
-  virtual void UpdatePosition(NodeWidgets *widget, vtkMRMLNode *node);
+  virtual bool UpdateNthSeedPositionFromMRML(int n, vtkSeedWidget *widget, vtkMRMLMarkupsNode *pointsNode);
 
   // Clean up when scene closes
   virtual void OnMRMLSceneEndClose();
@@ -85,7 +83,7 @@ protected:
   void PropagateSeedWidgetToMRML(vtkSeedWidget* widget, vtkMRMLMarkupsFiducialNode* node);
 
   void PropagateMRMLToSeedWidget(vtkMRMLMarkupsFiducialNode* node, vtkSeedWidget* widget);
-  void PropagateMRMLToSphereWidgets(vtkMRMLMarkupsFiducialNode* node, WidgetList& widgets);
+  void PropagateMRMLToSphereWidgets(vtkMRMLMarkupsFiducialNode* node, NodeWidgets* widgets);
 
   void AfterPropagateMRMLToWidget(vtkMRMLMarkupsFiducialNode* node);
 

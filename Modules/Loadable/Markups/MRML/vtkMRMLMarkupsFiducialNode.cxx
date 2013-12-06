@@ -248,7 +248,8 @@ void vtkMRMLMarkupsFiducialNode::GetNthFiducialWorldCoordinates(int n, double co
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLMarkupsFiducialNode::GetFiducialMode() const
+vtkMRMLMarkupsFiducialNode::FiducialInteractionMode
+vtkMRMLMarkupsFiducialNode::GetFiducialMode() const
 {
   return this->FiducialMode;
 }

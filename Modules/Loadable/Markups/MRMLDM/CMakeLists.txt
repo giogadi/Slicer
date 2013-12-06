@@ -33,6 +33,7 @@ set(${KIT}_SRCS
   ${displayable_manager_instantiator_SRCS}
   ${displayable_manager_SRCS}
   vtkMRML${MODULE_NAME}DisplayableManagerHelper.cxx
+  vtkMRML${MODULE_NAME}DisplayableManagerHelper2D.cxx
   vtkMRML${MODULE_NAME}ClickCounter.cxx
 )
 

@@ -61,7 +61,7 @@ public:
   void UpdateLockedAllWidgets(bool isLocked);
   /// To be overridden. Describes how to lock/unlock the widgets of a
   /// specific node type
-  virtual UpdateNodeWidgetsLocks(vtkMRMLMarkupsNode* node, bool isLocked);
+  virtual void UpdateNodeWidgetsLocks(vtkMRMLMarkupsNode* vtkNotUsed(node), bool vtkNotUsed(isLocked)) {};
 
   // the following functions must be public to be accessible by the callback
   /// Propagate properties of MRML node to widget.
@@ -155,15 +155,6 @@ protected:
   virtual void OnClickInRenderWindow(double x, double y, const char *associatedNodeID = NULL);
   /// Counter for clicks in Render Window
   vtkMRMLMarkupsClickCounter* ClickCounter;
-
-  /// Update a single seed from markup position, implemented by the subclasses, return
-  /// true if the position changed
-  virtual bool UpdateNthSeedPositionFromMRML(int vtkNotUsed(n),
-                 NodeWidgets *vtkNotUsed(widget),
-                 vtkMRMLMarkupsNode *vtkNotUsed(markupsNode))
-    { return false; }
-  /// Update just the position for the widget, implemented by subclasses.
-  virtual void UpdatePosition(vtkAbstractWidget *vtkNotUsed(widget), vtkMRMLNode *vtkNotUsed(node)) {}
 
   //
   // Seeds for widget placement

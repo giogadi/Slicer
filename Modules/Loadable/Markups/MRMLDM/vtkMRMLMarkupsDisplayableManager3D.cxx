@@ -71,7 +71,7 @@ typedef void (*fp)(void);
 #define NUMERIC_ZERO 0.001
 
 //---------------------------------------------------------------------------
-vtkStandardNewMacro (vtkMRMLMarkupsDisplayableManager3D);
+vtkStandardNewMacro (vtkMRMLMarkupsDisplayableManager3D)
 vtkCxxRevisionMacro (vtkMRMLMarkupsDisplayableManager3D, "$Revision: 1.2 $");
 
 //---------------------------------------------------------------------------
@@ -558,7 +558,7 @@ void vtkMRMLMarkupsDisplayableManager3D::OnMRMLMarkupsDisplayNodeModifiedEvent(v
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManager3D::OnMRMLMarkupsPointModifiedEvent(vtkMRMLNode *node, int n)
+void vtkMRMLMarkupsDisplayableManager3D::OnMRMLMarkupsPointModifiedEvent(vtkMRMLNode *node, int vtkNotUsed(n))
 {
   vtkDebugMacro("OnMRMLMarkupsPointModifiedEvent");
   if (!node)
@@ -989,7 +989,7 @@ void vtkMRMLMarkupsDisplayableManager3D::OnClickInRenderWindow(double vtkNotUsed
 }
 
 //---------------------------------------------------------------------------
-NodeWidgets* vtkMRMLMarkupsDisplayableManager3D::CreateWidget(vtkMRMLMarkupsNode* vtkNotUsed(node))
+vtkMRMLMarkupsDisplayableManager3D::NodeWidgets* vtkMRMLMarkupsDisplayableManager3D::CreateWidget(vtkMRMLMarkupsNode* vtkNotUsed(node))
 {
 
   // A widget should be created here.
@@ -1066,7 +1066,8 @@ void vtkMRMLMarkupsDisplayableManager3D::GetWorldToLocalCoordinates(vtkMRMLMarku
 
 //---------------------------------------------------------------------------
 /// Create a new widget for this markups node and save it to the helper.
-NodeWidgets * vtkMRMLMarkupsDisplayableManager3D::AddWidget(vtkMRMLMarkupsNode *markupsNode)
+vtkMRMLMarkupsDisplayableManager3D::NodeWidgets *
+vtkMRMLMarkupsDisplayableManager3D::AddWidget(vtkMRMLMarkupsNode *markupsNode)
 {
   vtkDebugMacro("AddWidget: calling create widget");
   NodeWidgets* newWidget = this->CreateWidget(markupsNode);
@@ -1118,7 +1119,7 @@ void vtkMRMLMarkupsDisplayableManager3D::UpdateLockedFromInteractionNode(vtkMRML
     return;
 
   int currentInteractionMode = interactionNode->GetCurrentInteractionMode();
-  vtkDebugMacro("Markups DisplayableManager 3D: updateLockedAllWidgetsFromInteractionNode, currentInteractionMode = " << currentInteractionMode);
+  vtkDebugMacro("Markups DisplayableManager 3D: updateLockedFromInteractionNode, currentInteractionMode = " << currentInteractionMode);
   if (currentInteractionMode == vtkMRMLInteractionNode::Place)
     {
     // turn off processing events on the 3d widgets
