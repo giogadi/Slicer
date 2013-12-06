@@ -87,7 +87,9 @@ protected:
 
   void AfterPropagateMRMLToWidget(vtkMRMLMarkupsFiducialNode* node);
 
-  // TRYING THIS OUT sorry mother
+  // This flag ensures that while propagating a widget's information
+  // to MRML, the MRML information doesn't get fed back into the
+  // widget prematurely.
   bool PropagatingWidgetToMRML;
 
 private:
